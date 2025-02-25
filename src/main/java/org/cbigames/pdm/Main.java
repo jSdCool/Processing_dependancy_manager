@@ -23,6 +23,13 @@ public class Main {
          if(currentOS == OS.WINDOWS){
              processingPrefrencePath = System.getenv("appdata")+"\\Processing\\preferences.txt";
          }
+         if(currentOS == OS.LINUX){
+             processingPrefrencePath = System.getenv("HOME")+"/.config/processing/preferences.txt";
+         }
+         if(currentOS == OS.MACOS){
+             //hope this works, I do not own a mac so not easy for me to test this
+             processingPrefrencePath = System.getProperty("user.home")+"/Library/Processing/preferences.txt";
+         }
          //do other oses here
 
          String sketchBookLocation ="";
