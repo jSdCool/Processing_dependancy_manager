@@ -1,6 +1,8 @@
 package org.cbigames.pdm;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
@@ -103,13 +105,14 @@ public class Main {
                 for (String fn : processingLibs) {
                     if (fn.equals(lib.getLibJar())) {
                         exsists = true;
+                        break;
                     }
                 }
             }
             //if the lib is already installed then check the version
             boolean delete = false;
             if(exsists){
-                String fileVersion = null;
+                String fileVersion;
                 try(FileInputStream version = new FileInputStream(sketchBookLocation+"/libraries/"+lib.getLibJar()+"/library/version.txt")){
                     fileVersion = new String(version.readAllBytes());
                     if(fileVersion.equals(lib.getLibVersion())){
@@ -135,7 +138,20 @@ public class Main {
 
             //we now have an empty folder, lets download the things
             //find what repo the thing is in
-            String repo = repos.get(0);
+            String repo = null;
+
+            for(String posiobleRep: repos){
+                if(repoHasLib(posiobleRep,lib.getLibPackage().replaceAll("\\.","/")+"/"+lib.getLibJar()+"/"+lib.getLibVersion())){
+                    repo = posiobleRep;
+                    break;
+                }
+            }
+
+            if(repo == null){
+                System.err.println("Unable to find "+lib.getLibJar()+" in any of the supplied repos");
+                System.err.println("Program will Exit");
+                return;
+            }
 
             String libRepoPath = repo+"/"+lib.getLibPackage().replaceAll("\\.","/")+"/"+lib.getLibJar()+"/"+lib.getLibVersion();
             //download the main library jar
@@ -186,7 +202,7 @@ public class Main {
                             if (!parent.isDirectory() && !parent.mkdirs()) {
                                 throw new IOException("Failed to create directory " + parent);
                             }
-                            try(FileOutputStream fos = new FileOutputStream(newFile);){
+                            try(FileOutputStream fos = new FileOutputStream(newFile)){
                                 zis.transferTo(fos);//lets see if this works
                             }
                         }
@@ -212,6 +228,17 @@ public class Main {
 
 
 
+    }
+
+    static boolean repoHasLib(String repo, String libPackageAndVerion){
+        try {
+            URL url = new URL(repo+"/"+libPackageAndVerion);
+            HttpURLConnection con = (HttpURLConnection)url.openConnection();
+            int code = con.getResponseCode();
+            return code >= 200 && code <= 299;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     public static File newFile(File destinationDir, ZipEntry zipEntry) throws IOException {
@@ -242,7 +269,7 @@ public class Main {
     }
 
     public enum OS{
-        WINDOWS,LINUX,MACOS;
+        WINDOWS,LINUX,MACOS
     }
 
     static OS detectOS() {
