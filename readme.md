@@ -35,17 +35,17 @@ The following fields can exist inside a lib block:
 ```depends
 
 //comment
-//define our owne repo
+//define our own repo
 repo https://maven.mydomain.com/repository
 
-//note: the default maven repo is automatiacly inclided (https://repo1.maven.org/maven2)
+//note: the default maven repo is automatiacly included (https://repo1.maven.org/maven2)
 //you can define as many repos as is required
 
 lib{
     package net.example.lib
     jar example1
     version 1.0.0+snapshot
-    //the main jar that will be downlaoded from is: example1-1.0.0+snapshot.jar this file will be saved as: example1.jar
+    //the main jar that will be downloaded from is: example1-1.0.0+snapshot.jar this file will be saved as: example1.jar
     native natives-all
     //the native line will download the folowing file: example1-1.0.0+snapshot-natives-all.jar
     //its contense will then be extracted to the library folder minus the META-INF folder
