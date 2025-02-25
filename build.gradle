@@ -1,9 +1,10 @@
 plugins {
     id 'java'
+    id 'application'
 }
 
 group = 'org.cbigames.pdm'
-version = '1.0-SNAPSHOT'
+version = '1.0.0'
 
 repositories {
     mavenCentral()
@@ -16,4 +17,14 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+application{
+    mainClass = 'org.cbigames.pdm.Main'
+}
+
+jar{
+    manifest {
+        attributes 'Main-Class': application.mainClass
+    }
 }
