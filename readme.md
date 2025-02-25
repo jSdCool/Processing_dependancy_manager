@@ -25,10 +25,10 @@ Repos can be defined by putting the word `repo` on a line followed by the link t
 
 Libraries are defined inside a `lib` block. the block is bounded by `{}` the opening `{` must be on the same line as the word lib. The closing `}` must be on its own line.
 Each field specified inside a lib block must be on its own line.  
-The following fields exsist inside a lib block:  
+The following fields can exist inside a lib block:  
 `package` the . separated package of the lib. This field is required.  
 `jar` the name of the library/primary name of the jar file. This is what the library will be named in processing. This field is required.  
-`version` the version of the lib you want to install as specified by the lib author. This field is required.
+`version` the version of the lib you want to install as specified by the lib author. This field is required.  
 `native` additional information about a jar in the same package on the repo that contains native code to be extracted. You may have 0 - Integer.MAX_VALE of this field in each lib block
 
 ### example
