@@ -29,7 +29,7 @@ public class DownloadFile {
     }
     if(progress!=null && progress.length>=2){
       progress[0] = c.getContentLengthLong();
-    }System.err.println(c.getContentLengthLong());
+    }
 
     InputStream input;
     input = c.getInputStream();

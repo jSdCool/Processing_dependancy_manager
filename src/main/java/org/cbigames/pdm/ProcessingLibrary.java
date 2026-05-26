@@ -32,14 +32,6 @@ public class ProcessingLibrary {
         return downloadLink != null;
     }
 
-    public String getLibFolderName(){
-        File zipFile = new File(downloadLink);
-        String name = zipFile.getName();
-        //remove the .zip
-        name = name.substring(0,name.length()-4);
-        return name;
-    }
-
     public String getDownloadLink(){
         return downloadLink;
     }

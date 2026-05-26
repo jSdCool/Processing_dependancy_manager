@@ -318,26 +318,26 @@ public class Main {
         }
 
         //download the processing libs if they are not present
+        ArrayList<String> installedLibNames = getInstalledProcessingLibs(processingLibs,sketchBookLocation);
         for(ProcessingLibrary plib: processingLibraries){
             boolean exsists = false;
-            if(processingLibs != null) {
-                for (String fn : processingLibs) {
-                    if (fn.equals(plib.getLibFolderName())) {
-                        exsists = true;
-                        break;
-                    }
+            for (String fn : installedLibNames) {
+                if (fn.equalsIgnoreCase(plib.getName())) {
+                    exsists = true;
+                    break;
                 }
             }
+
 
             if(exsists){
                 System.out.println(plib.getName()+" found. NOTE: processing libs need to be updated through processing's contribution manager");
             } else {
                 //download time!
                 //create the folder for the library
-                File destDir = new File(sketchBookLocation+"/libraries/"+plib.getLibFolderName()+"/");
+                File destDir = new File(sketchBookLocation+"/libraries/");
                 boolean ignored = destDir.mkdirs();
                 System.out.println("Downloading processing lib: "+plib.getName());
-                String libZip = sketchBookLocation+"/libraries/"+plib.getLibFolderName()+"/libRaw.zip";
+                String libZip = sketchBookLocation+"/libraries/libRaw.zip";
                 try {
                     DownloadFile.download(plib.getDownloadLink(),libZip,null);
                 } catch (IOException e) {
@@ -348,7 +348,7 @@ public class Main {
                     ZipEntry ze = zis.getNextEntry();
                     while(ze != null) {
                         File newFile = newFile(destDir,ze);
-                        if(newFile.isDirectory()){
+                        if(ze.isDirectory()){
                             if(newFile.getName().equals("META-INF")){
                                 ze = zis.getNextEntry();
                                 continue;
@@ -379,6 +379,8 @@ public class Main {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+                //noinspection ResultOfMethodCallIgnored
+                new File(libZip).delete();
             }
         }
 
@@ -441,5 +443,30 @@ public class Main {
             return OS.MACOS;
         }
         return OS.LINUX;
+    }
+
+    static ArrayList<String> getInstalledProcessingLibs(String[] processingLibs, String sketchBookLocation){
+        if(processingLibs == null){
+            return new ArrayList<>();
+        }
+        ArrayList<String> processingLibNames = new ArrayList<>();
+        for(String libFolder: processingLibs){
+            File libInfoFile = new File(sketchBookLocation+"/libraries/"+libFolder+"/library.properties");
+            if(libInfoFile.exists()){
+                try(Scanner lineScanner = new Scanner(libInfoFile)){
+                    while(lineScanner.hasNextLine()){
+                        String line = lineScanner.nextLine();
+                        if(line.startsWith("name = ")){
+                            processingLibNames.add(line.substring("name = ".length()));
+                            break;
+                        }
+                    }
+                } catch (IOException e){
+                    throw new RuntimeException("Exception while reading lib properties file",e);
+                }
+            }
+        }
+
+        return processingLibNames;
     }
 }
