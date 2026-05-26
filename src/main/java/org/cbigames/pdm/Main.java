@@ -50,6 +50,7 @@ public class Main {
 
         ArrayList<String> repos = new ArrayList<>();
         ArrayList<LibraryDef> libraries = new ArrayList<>();
+        ArrayList<ProcessingLibrary> processingLibraries = new ArrayList<>();
         //default repo
         repos.add("https://repo1.maven.org/maven2");
 
@@ -97,14 +98,97 @@ public class Main {
                     }
                     libraries.add(new LibraryDef(setupLines,lineNumber,length));
                     lineNumber+=length;
+                } else {
+                    throw new RuntimeException("Syntax error: expected { on line "+lineNumber);
                 }
 
+            } else if (setupLines[lineNumber].startsWith("plib")){
+                if(setupLines[lineNumber].charAt(3)=='{' || setupLines[lineNumber].charAt(4)=='{'){
+                    lineNumber++;
+                    //find how long the lib block is
+                    int length = 0;
+                    int numBlocks = 1;
+                    while(true){
+                        if(lineNumber+length >= setupLines.length){
+                            throw new RuntimeException("Reached end of file before end of plib block");
+                        }
+                        if(setupLines[lineNumber+length].charAt(0)=='}'){
+                            numBlocks --;
+                        }
+                        if(numBlocks == 0){
+                            break;
+                        }
+                        if(setupLines[lineNumber+length].contains("{")){
+                            numBlocks ++;
+                        }
+                        length++;
+                    }
+                    //create the plib here
+                    processingLibraries.add(new ProcessingLibrary(setupLines,lineNumber,length));
+                    lineNumber+=length;
+                } else {
+                    throw new RuntimeException("Syntax error: expected { on line "+lineNumber);
+                }
+            }
+        }
+
+        if(!processingLibraries.isEmpty()){
+            //fetch the list of processing libraries
+            //https://contributions.processing.org/contribs.txt
+            try {
+                String contributionsFileRaw = DownloadFile.downloadToString("https://contributions.processing.org/contribs.txt");
+                String[] contributionsFile = contributionsFileRaw.split("\n");
+                //parse the file resolving lib download links as we go
+                boolean lookForLib = true;
+                boolean parsingLib = false;
+                boolean lookForNextBlank = false;
+                int workingLib = -1;
+                for(int line = 0;line< contributionsFile.length;line++){
+                    if(lookForLib){
+                        lookForLib = false;
+                        if(contributionsFile[line].equals("library")){
+                            parsingLib = true;
+                            workingLib = -1;
+                        } else {
+                            lookForNextBlank = true;
+                        }
+                    } else if (parsingLib){
+                        if(contributionsFile[line].startsWith("name=")){
+                            String name = contributionsFile[line].substring("name=".length());
+                            for(int j=0;j<processingLibraries.size();j++){
+                                if(processingLibraries.get(j).getName().equalsIgnoreCase(name)){
+                                    workingLib = j;
+                                }
+                            }
+                        } else if(workingLib!= -1 && contributionsFile[line].startsWith("download=")){
+                            String link = contributionsFile[line].substring("download=".length());
+                            processingLibraries.get(workingLib).setDownloadLink(link);
+
+                        } else if(contributionsFile[line].isEmpty()){
+                            parsingLib = false;
+                            lookForLib = true;
+                        }
+                    } else if(lookForNextBlank){
+                        if(contributionsFile[line].isEmpty()){
+                            lookForNextBlank = false;
+                            lookForLib = true;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to fetch processing libraries list!");
+            }
+        }
+        //validate we found all the processing libs
+        for (ProcessingLibrary processingLibrary : processingLibraries) {
+            if (!processingLibrary.resolved()) {
+                throw new RuntimeException("Failed to resolve processing library " + processingLibrary.getName());
             }
         }
 
         String[] processingLibs = new File(sketchBookLocation+"/libraries").list();
 
-        //prepare for installation
+        //prepare for installation and install if necessary
         for(LibraryDef lib: libraries){
             //check to see if the specified lib already exists
             boolean exsists = false;
@@ -231,6 +315,71 @@ public class Main {
             }
 
 
+        }
+
+        //download the processing libs if they are not present
+        for(ProcessingLibrary plib: processingLibraries){
+            boolean exsists = false;
+            if(processingLibs != null) {
+                for (String fn : processingLibs) {
+                    if (fn.equals(plib.getLibFolderName())) {
+                        exsists = true;
+                        break;
+                    }
+                }
+            }
+
+            if(exsists){
+                System.out.println(plib.getName()+" found. NOTE: processing libs need to be updated through processing's contribution manager");
+            } else {
+                //download time!
+                //create the folder for the library
+                File destDir = new File(sketchBookLocation+"/libraries/"+plib.getLibFolderName()+"/");
+                boolean ignored = destDir.mkdirs();
+                System.out.println("Downloading processing lib: "+plib.getName());
+                String libZip = sketchBookLocation+"/libraries/"+plib.getLibFolderName()+"/libRaw.zip";
+                try {
+                    DownloadFile.download(plib.getDownloadLink(),libZip,null);
+                } catch (IOException e) {
+                    throw new RuntimeException("Exception while downloading processing lib: "+plib.getName(),e);
+                }
+
+                try (ZipInputStream zis = new ZipInputStream(new FileInputStream(libZip))) {
+                    ZipEntry ze = zis.getNextEntry();
+                    while(ze != null) {
+                        File newFile = newFile(destDir,ze);
+                        if(newFile.isDirectory()){
+                            if(newFile.getName().equals("META-INF")){
+                                ze = zis.getNextEntry();
+                                continue;
+                            }
+                            if(!newFile.mkdirs()){
+                                throw new RuntimeException("Failed to create Folder "+newFile);
+                            }
+                        }else{
+                            File parent = newFile.getParentFile();
+                            if(parent.getPath().contains("META-INF")){
+                                ze = zis.getNextEntry();
+                                continue;
+                            }
+                            if(newFile.getName().equals("META-INF")){
+                                ze = zis.getNextEntry();
+                                continue;
+                            }
+                            if (!parent.isDirectory() && !parent.mkdirs()) {
+                                throw new IOException("Failed to create directory " + parent);
+                            }
+                            try(FileOutputStream fos = new FileOutputStream(newFile)){
+                                zis.transferTo(fos);//lets see if this works
+                            }
+                        }
+                        ze = zis.getNextEntry();
+                    }
+                    zis.closeEntry();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
 
 
