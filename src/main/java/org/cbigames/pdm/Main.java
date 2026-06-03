@@ -24,6 +24,8 @@ public class Main {
              processingPrefrencePath = System.getenv("appdata")+"\\Processing\\preferences.txt";
          }
          if(currentOS == OS.LINUX){
+             //apparently Linux as 3 different places it can have the preferences file
+             //TODO look in those other locations
              processingPrefrencePath = System.getenv("HOME")+"/.config/processing/preferences.txt";
          }
          if(currentOS == OS.MACOS){
@@ -47,6 +49,7 @@ public class Main {
              return;
          }
 
+         System.out.println("Found sketch book at ["+sketchBookLocation+"]");
 
         ArrayList<String> repos = new ArrayList<>();
         ArrayList<LibraryDef> libraries = new ArrayList<>();
@@ -369,6 +372,7 @@ public class Main {
                             if (!parent.isDirectory() && !parent.mkdirs()) {
                                 throw new IOException("Failed to create directory " + parent);
                             }
+                            System.out.println("Inflating file: "+newFile);
                             try(FileOutputStream fos = new FileOutputStream(newFile)){
                                 zis.transferTo(fos);//lets see if this works
                             }
