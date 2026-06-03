@@ -99,11 +99,11 @@ public class Main {
                     libraries.add(new LibraryDef(setupLines,lineNumber,length));
                     lineNumber+=length;
                 } else {
-                    throw new RuntimeException("Syntax error: expected { on line "+lineNumber);
+                    throw new RuntimeException("Syntax error: expected { on line "+(lineNumber+1));
                 }
 
             } else if (setupLines[lineNumber].startsWith("plib")){
-                if(setupLines[lineNumber].charAt(3)=='{' || setupLines[lineNumber].charAt(4)=='{'){
+                if(setupLines[lineNumber].charAt(4)=='{' || setupLines[lineNumber].charAt(5)=='{'){
                     lineNumber++;
                     //find how long the lib block is
                     int length = 0;
@@ -127,7 +127,7 @@ public class Main {
                     processingLibraries.add(new ProcessingLibrary(setupLines,lineNumber,length));
                     lineNumber+=length;
                 } else {
-                    throw new RuntimeException("Syntax error: expected { on line "+lineNumber);
+                    throw new RuntimeException("Syntax error: expected { on line "+(lineNumber+1));
                 }
             }
         }
